@@ -4,51 +4,44 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'configs/**'
+      - 'configs/extensions.conf'
 
 jobs:
   deploy-stage:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Copy configs to STAGE and run deploy script
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy to STAGE
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGE_HOST }}
-          username: ${{ secrets.STAGE_USER }}
+          username: ${{ secrets.STAGE_USER }}    # root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            rm -rf /tmp/asterisk-new
-            mkdir -p /tmp/asterisk-new
-            # заливаем новые конфиги из репо на сервер
-            cat << 'EOF' > /tmp/rsync.sh
-            #!/bin/bash
             set -e
-            rsync -a --delete configs/ /tmp/asterisk-new/
-            EOF
-            chmod +x /tmp/rsync.sh
-            /tmp/rsync.sh
-            sudo /usr/local/sbin/deploy-asterisk.sh
+            echo "== Copy extensions.conf =="
+            rsync -a --delete configs/extensions.conf /etc/asterisk/extensions.conf
+            echo "== Reload dialplan =="
+            asterisk -rx "dialplan reload"
 
   deploy-prod:
     needs: deploy-stage
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Copy configs to PROD and run deploy script
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy to PROD
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
+          username: ${{ secrets.PROD_USER }}     # root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            rm -rf /tmp/asterisk-new
-            mkdir -p /tmp/asterisk-new
-            rsync -a --delete configs/ /tmp/asterisk-new/
-            sudo /usr/local/sbin/deploy-asterisk.sh
+            set -e
+            echo "== Copy extensions.conf =="
+            rsync -a --delete configs/extensions.conf /etc/asterisk/extensions.conf
+            echo "== Reload dialplan =="
+            asterisk -rx "dialplan reload"
