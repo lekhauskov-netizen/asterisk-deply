@@ -1,0 +1,54 @@
+name: Deploy Asterisk
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'configs/**'
+
+jobs:
+  deploy-stage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Copy configs to STAGE and run deploy script
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGE_HOST }}
+          username: ${{ secrets.STAGE_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            rm -rf /tmp/asterisk-new
+            mkdir -p /tmp/asterisk-new
+            # заливаем новые конфиги из репо на сервер
+            cat << 'EOF' > /tmp/rsync.sh
+            #!/bin/bash
+            set -e
+            rsync -a --delete configs/ /tmp/asterisk-new/
+            EOF
+            chmod +x /tmp/rsync.sh
+            /tmp/rsync.sh
+            sudo /usr/local/sbin/deploy-asterisk.sh
+
+  deploy-prod:
+    needs: deploy-stage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Copy configs to PROD and run deploy script
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            rm -rf /tmp/asterisk-new
+            mkdir -p /tmp/asterisk-new
+            rsync -a --delete configs/ /tmp/asterisk-new/
+            sudo /usr/local/sbin/deploy-asterisk.sh
