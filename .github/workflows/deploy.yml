@@ -21,7 +21,8 @@ jobs:
           username: ${{ secrets.STAGE_USER }}      # root
           key: ${{ secrets.SSH_KEY }}
           source: "configs/extensions.conf"
-          target: "/etc/asterisk/"
+          target: "/etc/asterisk/extensions.conf"
+          strip_components: 1
 
       - name: Reload dialplan on STAGE
         uses: appleboy/ssh-action@v1
