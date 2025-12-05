@@ -15,22 +15,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Upload extensions.conf to STAGE
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGE_HOST }}
           username: ${{ secrets.STAGE_USER }}      # root
           key: ${{ secrets.SSH_KEY }}
-          source: "configs/extensions.conf"
-          target: "/etc/asterisk/"                 # именно каталог
-          # strip_components убрать
-
-      - name: Reload dialplan on STAGE
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.STAGE_HOST }}
-          username: ${{ secrets.STAGE_USER }}
-          key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
+            echo "== Copy extensions.conf to STAGE =="
+            scp -o StrictHostKeyChecking=no configs/extensions.conf \
+              ${USER}@localhost:/etc/asterisk/extensions.conf
             echo "== Reload dialplan on STAGE =="
             asterisk -rx "dialplan reload"
 
@@ -43,21 +37,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Upload extensions.conf to PROD
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}       # root
           key: ${{ secrets.SSH_KEY }}
-          source: "configs/extensions.conf"
-          target: "/etc/asterisk/"
-
-      - name: Reload dialplan on PROD
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
+            echo "== Copy extensions.conf to PROD =="
+            scp -o StrictHostKeyChecking=no configs/extensions.conf \
+              ${USER}@localhost:/etc/asterisk/extensions.conf
             echo "== Reload dialplan on PROD =="
             asterisk -rx "dialplan reload"
 
