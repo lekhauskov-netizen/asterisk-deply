@@ -1,10 +1,10 @@
-name: Asterisk Lint
+name: Asterisk Config Lint
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
-      - 'configs/**'
+      - 'configs/**'  # Проверять только изменения в папке configs
   pull_request:
     branches: [ main ]
     paths:
@@ -13,18 +13,34 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install asterisklint
-        run: pip install asterisklint
-
-      - name: Run dialplan lint
-        run: |
-          find configs -name "*.conf" -exec asterisklint dialplan-check {} \;
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install asterisklint
+      run: |
+        pip install asterisklint
+        
+    - name: Run dialplan syntax check
+      run: |
+        # Проверяем все .conf файлы в папке configs
+        find configs -name "*.conf" -exec asterisklint dialplan-check {} \;
+        # Или конкретно extensions.conf
+        # asterisklint dialplan-check configs/extensions.conf
+        
+    - name: Run func_odbc check (если используется)
+      run: |
+        if [ -f "configs/func_odbc.conf" ]; then
+          asterisklint func_odbc-check configs/func_odbc.conf
+        fi
+      continue-on-error: true  # Не ломает пайплайн если func_odbc.conf нет
+        
+    - name: List used modules
+      run: |
+        asterisklint modules-show configs/extensions.conf
