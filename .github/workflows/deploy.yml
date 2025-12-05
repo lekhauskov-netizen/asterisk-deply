@@ -7,7 +7,27 @@ on:
       - 'configs/extensions.conf'
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install asterisklint
+        run: pip install asterisklint
+
+      - name: Run dialplan syntax check
+        run: |
+          asterisklint dialplan-check configs/extensions.conf
+
   deploy-stage:
+    needs: lint
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +43,7 @@ jobs:
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
 
-      - name: Check syntax, rollback if failed (STAGE)
+      - name: Check reload, rollback if failed (STAGE)
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGE_HOST }}
@@ -38,18 +58,15 @@ jobs:
             PREV="/etc/asterisk/extensions.conf.prev"
             BAK="/etc/asterisk/extensions.conf.bak.$(date +%Y%m%d-%H%M%S)"
 
-            # Если scp-action создал подкаталог configs, берем оттуда файл
             if [ ! -f "$NEW_TMP" ]; then
               echo "No new extensions.conf at $NEW_TMP, nothing to do"
               exit 1
             fi
 
-            # Бэкап текущего рабочего файла
             if [ -f "$CUR" ]; then
               cp -a "$CUR" "$BAK"
             fi
 
-            # Меняем рабочий файл на новый, старый уносим во временное имя
             if [ -f "$CUR" ]; then
               mv "$CUR" "$PREV"
             fi
@@ -63,11 +80,9 @@ jobs:
               exit 0
             else
               echo "Dialplan reload FAILED, rolling back"
-              # вернуть старый файл
               if [ -f "$PREV" ]; then
                 mv -f "$PREV" "$CUR"
               fi
-              # еще раз перезагрузить старый диалплан
               asterisk -rx "dialplan reload" || true
               exit 1
             fi
@@ -89,7 +104,7 @@ jobs:
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
 
-      - name: Check syntax, rollback if failed (PROD)
+      - name: Check reload, rollback if failed (PROD)
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PROD_HOST }}
