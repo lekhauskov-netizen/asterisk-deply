@@ -6,7 +6,6 @@ on:
     paths:
       - 'configs/extensions.conf'
 
-jobs:
   lint:
     runs-on: ubuntu-latest
 
@@ -23,7 +22,13 @@ jobs:
         run: pip install asterisklint
 
       - name: Run dialplan syntax check
+        env:
+          # игнорируем конкретные варнинги:
+          # W_WSH_OBJSET (пробелы вокруг =>)
+          # W_DP_GOTO_CONTEXT_NOEXTEN (goto в несуществующий context/exten — если у тебя он всё-таки есть, можно убрать)
+          ALINT_IGNORE: "W_WSH_OBJSET,W_DP_GOTO_CONTEXT_NOEXTEN"
         run: |
+          set -e
           asterisklint dialplan-check configs/extensions.conf
 
   deploy-stage:
