@@ -6,6 +6,7 @@ on:
     paths:
       - 'configs/extensions.conf'
 
+jobs:
   lint:
     runs-on: ubuntu-latest
 
@@ -23,9 +24,6 @@ on:
 
       - name: Run dialplan syntax check
         env:
-          # игнорируем конкретные варнинги:
-          # W_WSH_OBJSET (пробелы вокруг =>)
-          # W_DP_GOTO_CONTEXT_NOEXTEN (goto в несуществующий context/exten — если у тебя он всё-таки есть, можно убрать)
           ALINT_IGNORE: "W_WSH_OBJSET,W_DP_GOTO_CONTEXT_NOEXTEN"
         run: |
           set -e
@@ -43,7 +41,7 @@ on:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.STAGE_HOST }}
-          username: ${{ secrets.STAGE_USER }}      # root
+          username: ${{ secrets.STAGE_USER }}
           key: ${{ secrets.SSH_KEY }}
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
@@ -52,7 +50,7 @@ on:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGE_HOST }}
-          username: ${{ secrets.STAGE_USER }}      # root
+          username: ${{ secrets.STAGE_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
@@ -104,7 +102,7 @@ on:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}       # root
+          username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.SSH_KEY }}
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
@@ -113,7 +111,7 @@ on:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}       # root
+          username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
