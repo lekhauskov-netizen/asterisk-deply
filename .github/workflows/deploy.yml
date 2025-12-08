@@ -43,6 +43,7 @@ jobs:
           host: ${{ secrets.STAGE_HOST }}
           username: ${{ secrets.STAGE_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 22
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
 
@@ -52,6 +53,7 @@ jobs:
           host: ${{ secrets.STAGE_HOST }}
           username: ${{ secrets.STAGE_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 22
           script: |
             set -e
             echo "== Prepare new dialplan on STAGE =="
@@ -104,6 +106,7 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 26852
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
 
@@ -113,6 +116,7 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 26852
           script: |
             set -e
             echo "== Prepare new dialplan on PROD =="
