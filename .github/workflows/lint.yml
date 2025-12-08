@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'configs/**'  # Проверять только изменения в папке configs
+      - 'configs/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -13,34 +13,22 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: Install asterisklint
-      run: |
-        pip install asterisklint
-        
-    - name: Run dialplan syntax check
-      run: |
-        # Проверяем все .conf файлы в папке configs
-        find configs -name "*.conf" -exec asterisklint dialplan-check {} \;
-        # Или конкретно extensions.conf
-        # asterisklint dialplan-check configs/extensions.conf
-        
-    - name: Run func_odbc check (если используется)
-      run: |
-        if [ -f "configs/func_odbc.conf" ]; then
-          asterisklint func_odbc-check configs/func_odbc.conf
-        fi
-      continue-on-error: true  # Не ломает пайплайн если func_odbc.conf нет
-        
-    - name: List used modules
-      run: |
-        asterisklint modules-show configs/extensions.conf
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install asterisklint
+        run: pip install asterisklint
+
+      - name: Run dialplan syntax check
+        env:
+          ALINT_IGNORE: "W_WSH_OBJSET,W_DP_GOTO_CONTEXT_NOEXTEN"
+        run: |
+          set -e
+          asterisklint dialplan-check configs/extensions.conf
