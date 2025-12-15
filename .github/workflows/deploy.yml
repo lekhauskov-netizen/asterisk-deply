@@ -29,8 +29,61 @@ jobs:
           set -e
           asterisklint dialplan-check configs/extensions.conf
 
-  deploy-stage:
+  graph:
     needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Graphviz and Python deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          pip install graphviz
+
+      - name: Generate dialplan graph PNG
+        run: |
+          mkdir -p graph
+          python << 'EOF'
+          from graphviz import Digraph
+
+          dot = Digraph(comment="Asterisk dialplan")
+          dot.attr(rankdir="LR", fontsize="10")
+
+          context = None
+          with open("configs/extensions.conf", "r") as f:
+            for line in f:
+              line = line.strip()
+              if not line or line.startswith((';', '#')):
+                continue
+              if line.startswith('[') and line.endswith(']'):
+                context = line[1:-1]
+                dot.node(context, shape="box", style="filled", fillcolor="lightgrey")
+                continue
+              if not line.startswith('exten =>') or context is None:
+                continue
+              # exten => 100,1,NoOp(...)  / same => n,Goto(from-trunk,s,1)
+              try:
+                left, app_part = line.split(',', 1)
+              except ValueError:
+                continue
+              parts = left.split()
+              if len(parts) < 3:
+                continue
+              _, _, exten = parts[:3]
+              prio, app_rest = app_part.split(',', 1)
+              app = app_rest.split('(')[0].strip()
+              node_name = f"{context}/{exten}/{prio}"
+              label = f"{context}:{exten},{prio}\\n{app}"
+              dot.node(node_name, label=label, shape="ellipse")
+              dot.edge(context, node_name)
+          dot.render("graph/extensions", format="png", cleanup=True)
+          EOF
+
+  deploy-stage:
+    needs: [lint, graph]
     runs-on: ubuntu-latest
 
     steps:
