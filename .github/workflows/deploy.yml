@@ -82,7 +82,7 @@ jobs:
               dot.node(node_name, label=label, shape="ellipse")
               dot.edge(context, node_name)
 
-              # Дополнительные связи для Dial(PJSIP/...)
+              # Явные конечные точки для Dial(PJSIP/...)
               if app.upper() == "DIAL":
                   # Берем аргументы внутри скобок Dial(...)
                   if '(' in app_rest and ')' in app_rest:
@@ -91,11 +91,21 @@ jobs:
                       arg_str = app_rest
                   target = arg_str.split(',', 1)[0].strip()
                   if target.upper().startswith("PJSIP/"):
-                      # Уникальный узел для каждой целевой PJSIP-точки
-                      dial_node = f"pjsip:{target}"
+                      # Уникальный ID узла без спецсимволов
+                      safe_id = (target.replace('/', '_')
+                                         .replace('{', '_')
+                                         .replace('}', '_')
+                                         .replace('@', '_')
+                                         .replace('$', '_'))
+                      dial_node = f"dial_{safe_id}"
                       dial_label = target
-                      dot.node(dial_node, label=dial_label,
-                               shape="box", style="filled,rounded", fillcolor="lightyellow")
+                      dot.node(
+                          dial_node,
+                          label=dial_label,
+                          shape="box",
+                          style="filled,rounded",
+                          fillcolor="lightyellow"
+                      )
                       dot.edge(node_name, dial_node)
 
           dot.render("graph/extensions", format="png", cleanup=True)
@@ -237,7 +247,7 @@ jobs:
             PREV="/etc/asterisk/extensions.conf.prev"
             BAK="/etc/asterisk/extensions.conf.bak.$(date +%Y%m%d-%H%M%S)"
 
-            if [ ! -f "$NEW_TMP" ]; then
+            if [ ! -f "$NEW_TMP"; then
               echo "No new extensions.conf at $NEW_TMP, nothing to do"
               exit 1
             fi
@@ -265,5 +275,4 @@ jobs:
               asterisk -rx "dialplan reload" || true
               exit 1
             fi
-
 
