@@ -64,7 +64,6 @@ jobs:
                 continue
               if not line.startswith('exten =>') or context is None:
                 continue
-              # exten => 100,1,NoOp(...)  / same => n,Goto(from-trunk,s,1)
               try:
                 left, app_part = line.split(',', 1)
               except ValueError:
@@ -81,6 +80,7 @@ jobs:
               dot.edge(context, node_name)
           dot.render("graph/extensions", format="png", cleanup=True)
           EOF
+          ls -l graph
 
   deploy-stage:
     needs: [lint, graph]
@@ -99,6 +99,16 @@ jobs:
           port: 22
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
+
+      - name: Upload graph PNG to STAGE
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGE_HOST }}
+          username: ${{ secrets.STAGE_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          source: "graph/extensions.png"
+          target: "/etc/asterisk/config/"
 
       - name: Check reload, rollback if failed (STAGE)
         uses: appleboy/ssh-action@v1
@@ -162,6 +172,16 @@ jobs:
           port: 26852
           source: "configs/extensions.conf"
           target: "/etc/asterisk/"
+
+      - name: Upload graph PNG to PROD
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 26852
+          source: "graph/extensions.png"
+          target: "/etc/asterisk/config/"
 
       - name: Check reload, rollback if failed (PROD)
         uses: appleboy/ssh-action@v1
