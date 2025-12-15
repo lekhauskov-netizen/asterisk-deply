@@ -72,12 +72,29 @@ jobs:
               if len(parts) < 3:
                 continue
               _, _, exten = parts[:3]
-              prio, app_rest = app_part.split(',', 1)
+              try:
+                prio, app_rest = app_part.split(',', 1)
+              except ValueError:
+                continue
               app = app_rest.split('(')[0].strip()
               node_name = f"{context}/{exten}/{prio}"
               label = f"{context}:{exten},{prio}\\n{app}"
               dot.node(node_name, label=label, shape="ellipse")
               dot.edge(context, node_name)
+
+              # Дополнительные связи для Dial(PJSIP/...)
+              if app.upper() == "DIAL":
+                  # Берем аргументы внутри скобок Dial(...)
+                  if '(' in app_rest and ')' in app_rest:
+                      arg_str = app_rest.split('(', 1)[1].rsplit(')', 1)[0]
+                  else:
+                      arg_str = app_rest
+                  target = arg_str.split(',', 1)[0].strip()
+                  if target.upper().startswith("PJSIP/"):
+                      dial_node = f"dial:{target}"
+                      dot.node(dial_node, label=target, shape="box", style="rounded")
+                      dot.edge(node_name, dial_node)
+
           dot.render("graph/extensions", format="png", cleanup=True)
           EOF
           ls -l graph
